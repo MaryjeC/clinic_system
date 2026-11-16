@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block navbar %}{% endblock %}
+
+{% block main %}
+<div class="auth-page">
+  <div class="auth-card">
+    <!-- Left: welcome panel -->
+    <div class="auth-side d-none d-md-flex">
+      <div class="bubble b1"></div><div class="bubble b2"></div><div class="bubble b3"></div>
+      <div class="position-relative">
+        <span class="brand-icon big mb-4"><i class="bi bi-heart-pulse-fill"></i></span>
+        <h2 class="fw-bold mb-2">CareTrack</h2>
+        <p class="opacity-75 mb-4">School Clinic Health Monitoring System</p>
+        <ul class="list-unstyled auth-features">
+          <li><i class="bi bi-graph-up-arrow"></i> Live KPIs and charts</li>
+          <li><i class="bi bi-journal-medical"></i> Every clinic visit in one place</li>
+          <li><i class="bi bi-shield-lock"></i> Staff-only secure access</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Right: form -->
+    <div class="auth-form">
+      {% include "_flash.html" %}
+      {% block form %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

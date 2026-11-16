@@ -1,0 +1,17 @@
+{# Colored badge for each complaint, used in the tables #}
+{% macro complaint_badge(c) -%}
+  {% set styles = {
+      "Fever": ("c-red", "thermometer-high"),
+      "Headache": ("c-purple", "emoji-dizzy"),
+      "Cough and Colds": ("c-blue", "lungs"),
+      "Stomachache": ("c-orange", "capsule"),
+      "Dysmenorrhea": ("c-pink", "droplet-half"),
+      "Dizziness": ("c-indigo", "tornado"),
+      "Toothache": ("c-teal", "emoji-grimace"),
+      "Allergy": ("c-yellow", "flower1"),
+      "Wound/Injury": ("c-rose", "bandaid"),
+      "Asthma": ("c-cyan", "wind"),
+  } %}
+  {% set cls, icon = styles.get(c, ("c-gray", "clipboard2-pulse")) %}
+  <span class="cbadge {{ cls }}"><i class="bi bi-{{ icon }}"></i> {{ c }}</span>
+{%- endmacro %}

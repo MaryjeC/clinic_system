@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% from "_macros.html" import complaint_badge %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Hero banner -->
+<section class="hero mb-4 fade-up">
+  <div class="hero-bubble h1b"></div><div class="hero-bubble h2b"></div>
+  <div class="position-relative d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <p class="mb-1 opacity-75"><i class="bi bi-calendar3 me-1"></i><span id="today"></span></p>
+      <h1 class="h3 fw-bold mb-1">{{ greeting }}, {{ g.user['full_name'].split()[0] }}! 🌿</h1>
+      <p class="mb-0 opacity-75">Here's how the school clinic is doing.</p>
+    </div>
+    <a href="{{ url_for('add_visit') }}" class="btn btn-light btn-hero"><i class="bi bi-plus-lg me-1"></i>New Visit</a>
+  </div>
+</section>
+
+<!-- Filters -->
+<form method="get" class="filter-bar d-flex flex-wrap align-items-center gap-2 mb-4 fade-up" style="--d:.05s">
+  <span class="text-muted small fw-semibold me-1"><i class="bi bi-funnel-fill text-success"></i> Filter</span>
+  <select name="course" class="form-select form-select-sm w-auto">
+    <option value="">All courses</option>
+    {% for c in courses %}
+      <option value="{{ c }}" {% if selected.course == c %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+  </select>
+  <select name="gender" class="form-select form-select-sm w-auto">
+    <option value="">All genders</option>
+    {% for gd in ["Male", "Female"] %}
+      <option value="{{ gd }}" {% if selected.gender == gd %}selected{% endif %}>{{ gd }}</option>
+    {% endfor %}
+  </select>
+  <select name="month" class="form-select form-select-sm w-auto">
+    <option value="">All months</option>
+    {% for value, label in month_options %}
+      <option value="{{ value }}" {% if selected.month == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-sm btn-clinic px-3">Apply</button>
+  {% if selected.course or selected.gender or selected.month %}
+    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-lg"></i> Clear</a>
+  {% endif %}
+</form>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3 fade-up" style="--d:.1s">
+    <div class="card kpi kpi-green h-100"><div class="card-body">
+      <div class="kpi-icon"><i class="bi bi-hospital"></i></div>
+      <div class="kpi-label">Total Clinic Visits</div>
+      <div class="kpi-value" data-count="{{ kpis.total_visits }}">0</div>
+      <div class="kpi-sub">all recorded visits</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-3 fade-up" style="--d:.18s">
+    <div class="card kpi kpi-amber h-100"><div class="card-body">
+      <div class="kpi-icon"><i class="bi bi-virus"></i></div>
+      <div class="kpi-label">Most Common Illness</div>
+      <div class="kpi-value kpi-text">{{ kpis.top_illness }}</div>
+      <div class="kpi-sub"><span data-count="{{ kpis.top_illness_count }}">0</span> cases</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-3 fade-up" style="--d:.26s">
+    <div class="card kpi kpi-blue h-100"><div class="card-body">
+      <div class="kpi-icon"><i class="bi bi-gender-ambiguous"></i></div>
+      <div class="kpi-label">Male / Female Visits</div>
+      <div class="kpi-value">
+        <span class="text-male" data-count="{{ kpis.male }}">0</span><span class="kpi-divider"> / </span><span class="text-female" data-count="{{ kpis.female }}">0</span>
+      </div>
+      {% set total = kpis.male + kpis.female %}
+      <div class="gender-bar mt-2">
+        <div class="male" style="width: {{ (kpis.male / total * 100) if total else 50 }}%"></div>
+        <div class="female"></div>
+      </div>
+      <div class="kpi-sub mt-1">
+        <span class="dot male"></span>Male {{ ((kpis.male / total * 100) if total else 0) | round | int }}%
+        <span class="dot female ms-2"></span>Female {{ ((kpis.female / total * 100) if total else 0) | round | int }}%
+      </div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-3 fade-up" style="--d:.34s">
+    <div class="card kpi kpi-teal h-100"><div class="card-body">
+      <div class="kpi-icon"><i class="bi bi-calendar2-week"></i></div>
+      <div class="kpi-label">Monthly Cases</div>
+      <div class="kpi-value" data-count="{{ kpis.latest_month_cases }}">0</div>
+      <div class="kpi-sub">{{ kpis.latest_month }} &middot; avg {{ kpis.avg_monthly }}/month</div>
+    </div></div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-3">
+  <div class="col-lg-6 fade-up" style="--d:.4s">
+    <div class="card chart-card h-100"><div class="card-body">
+      <h2 class="chart-title"><i class="bi bi-bar-chart-fill"></i> Illness Distribution</h2>
+      <div class="chart-box"><canvas id="illnessChart"></canvas></div>
+    </div></div>
+  </div>
+  <div class="col-lg-6 fade-up" style="--d:.45s">
+    <div class="card chart-card h-100"><div class="card-body">
+      <h2 class="chart-title"><i class="bi bi-graph-up-arrow"></i> Visits per Month</h2>
+      <div class="chart-box"><canvas id="monthlyChart"></canvas></div>
+    </div></div>
+  </div>
+  <div class="col-lg-6 fade-up" style="--d:.5s">
+    <div class="card chart-card h-100"><div class="card-body">
+      <h2 class="chart-title"><i class="bi bi-mortarboard-fill"></i> Visits by Course</h2>
+      <div class="chart-box"><canvas id="courseChart"></canvas></div>
+    </div></div>
+  </div>
+  <div class="col-lg-6 fade-up" style="--d:.55s">
+    <div class="card chart-card h-100"><div class="card-body">
+      <h2 class="chart-title"><i class="bi bi-people-fill"></i> Age Group Analysis</h2>
+      <div class="chart-box"><canvas id="ageChart"></canvas></div>
+    </div></div>
+  </div>
+</div>
+
+<!-- Recent visits -->
+<div class="card mt-4 fade-up" style="--d:.6s">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="chart-title mb-0"><i class="bi bi-clock-history"></i> Recent Visits</h2>
+      <a href="{{ url_for('visit_list') }}" class="link-clinic small fw-semibold">View all <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <tbody>
+        {% for v in recent %}
+          <tr>
+            <td><span class="avatar sm">{{ v.gender[:1] }}</span></td>
+            <td><div class="fw-semibold">{{ v.student_id }}</div><div class="small text-muted">{{ v.course }} &middot; {{ v.age }} yrs</div></td>
+            <td>{{ complaint_badge(v.complaint) }}</td>
+            <td class="text-muted small text-end">{{ v.date }}</td>
+          </tr>
+        {% else %}
+          <tr><td class="text-muted text-center py-3">No visits for these filters.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  // Today's date in the banner
+  document.getElementById("today").textContent = new Date().toLocaleDateString(
+    "en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  // Count-up animation for the KPI numbers
+  document.querySelectorAll("[data-count]").forEach(el => {
+    const target = Number(el.dataset.count);
+    const start = performance.now(), duration = 1000;
+    function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+
+  // ---------- Charts (data comes from compute_charts in app.py) ----------
+  const charts = {{ charts | tojson }};
+  Chart.defaults.font.family = "Poppins, system-ui, sans-serif";
+  Chart.defaults.color = "#4b5d52";
+  Chart.defaults.plugins.tooltip.backgroundColor = "#14532d";
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+  const GREENS = ["#14532d", "#166534", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#86efac", "#a7f3d0", "#bbf7d0", "#d1fae5", "#ecfdf5"];
+  const grid = { color: "#e7f3eb" };
+  const base = {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 1200, easing: "easeOutQuart" },
+    plugins: { legend: { display: false } },
+    scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 }, grid } }
+  };
+
+  // 1. Illness Distribution: horizontal bars, darkest green = most common
+  new Chart(document.getElementById("illnessChart"), {
+    type: "bar",
+    data: { labels: charts.illness.labels,
+            datasets: [{ label: "Visits", data: charts.illness.values,
+                         backgroundColor: charts.illness.values.map((_, i) => GREENS[Math.min(i, GREENS.length - 3)]),
+                         borderRadius: 6 }] },
+    options: { ...base, indexAxis: "y",
+      scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid }, y: { grid: { display: false } } } }
+  });
+
+  // 2. Visits per Month: line with a gradient fill
+  const monthCanvas = document.getElementById("monthlyChart");
+  const gradient = monthCanvas.getContext("2d").createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, "rgba(34,197,94,0.35)");
+  gradient.addColorStop(1, "rgba(34,197,94,0)");
+  new Chart(monthCanvas, {
+    type: "line",
+    data: { labels: charts.monthly.labels,
+            datasets: [{ label: "Visits", data: charts.monthly.values,
+                         borderColor: "#16a34a", backgroundColor: gradient, borderWidth: 3,
+                         fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 7,
+                         pointBackgroundColor: "#fff", pointBorderColor: "#16a34a", pointBorderWidth: 2 }] },
+    options: base
+  });
+
+  // 3. Visits by Course: bars
+  new Chart(document.getElementById("courseChart"), {
+    type: "bar",
+    data: { labels: charts.course.labels,
+            datasets: [{ label: "Visits", data: charts.course.values,
+                         backgroundColor: "#22c55e", hoverBackgroundColor: "#15803d", borderRadius: 8 }] },
+    options: base
+  });
+
+  // 4. Age Group Analysis: bars
+  new Chart(document.getElementById("ageChart"), {
+    type: "bar",
+    data: { labels: charts.age.labels,
+            datasets: [{ label: "Visits", data: charts.age.values,
+                         backgroundColor: "#0d9488", hoverBackgroundColor: "#115e59", borderRadius: 8 }] },
+    options: { ...base,
+      scales: { ...base.scales, x: { grid: { display: false }, title: { display: true, text: "Age group" } } } }
+  });
+</script>
+{% endblock %}

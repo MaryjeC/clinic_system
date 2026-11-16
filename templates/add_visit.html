@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Add Visit{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="d-flex align-items-center gap-3 mb-4 fade-up">
+      <span class="page-icon"><i class="bi bi-clipboard2-plus"></i></span>
+      <div>
+        <h1 class="h3 fw-bold mb-0">Add Clinic Visit</h1>
+        <p class="text-muted mb-0">Record a student's visit to the clinic.</p>
+      </div>
+    </div>
+
+    <div class="card form-card fade-up" style="--d:.08s"><div class="card-body p-4">
+      <form method="post" novalidate>
+        <h2 class="form-section"><i class="bi bi-person-vcard"></i> Student information</h2>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label">Student ID</label>
+            <input type="text" name="student_id" class="form-control" placeholder="e.g. S2023001"
+                   value="{{ form.student_id or '' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Course</label>
+            <select name="course" class="form-select" required>
+              <option value="">Choose...</option>
+              {% for c in courses %}
+                <option {% if form.course == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Age</label>
+            <input type="number" name="age" min="10" max="80" class="form-control"
+                   value="{{ form.age or '' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label d-block">Gender</label>
+            <div class="btn-group w-100" role="group">
+              <input type="radio" class="btn-check" name="gender" id="gMale" value="Male" {% if form.gender == 'Male' %}checked{% endif %}>
+              <label class="btn btn-outline-clinic" for="gMale"><i class="bi bi-gender-male"></i> Male</label>
+              <input type="radio" class="btn-check" name="gender" id="gFemale" value="Female" {% if form.gender == 'Female' %}checked{% endif %}>
+              <label class="btn btn-outline-clinic" for="gFemale"><i class="bi bi-gender-female"></i> Female</label>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="form-section"><i class="bi bi-clipboard2-pulse"></i> Visit details</h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Complaint</label>
+            <select name="complaint" id="complaint" class="form-select" required>
+              <option value="">Choose...</option>
+              {% for c in complaints %}
+                <option {% if form.complaint == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Date of Visit</label>
+            <input type="date" name="date" class="form-control" value="{{ form.date or '' }}" required>
+          </div>
+          <div class="col-12" id="otherBox" style="display:none">
+            <label class="form-label">Specify complaint</label>
+            <input type="text" name="other_complaint" class="form-control"
+                   value="{{ form.other_complaint or '' }}">
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+          <button class="btn btn-clinic px-4"><i class="bi bi-check2-circle me-1"></i>Save Visit</button>
+          <a href="{{ url_for('visit_list') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Show the "Specify complaint" box only when "Other" is chosen
+  const select = document.getElementById("complaint");
+  const box = document.getElementById("otherBox");
+  function toggleOther() { box.style.display = select.value === "Other" ? "block" : "none"; }
+  select.addEventListener("change", toggleOther);
+  toggleOther();
+</script>
+{% endblock %}

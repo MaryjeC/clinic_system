@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_macros.html" import complaint_badge %}
+{% block title %}Visit Records{% endblock %}
+
+{% block content %}
+<div class="page-head d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 fade-up">
+  <div class="d-flex align-items-center gap-3">
+    <span class="page-icon"><i class="bi bi-journal-medical"></i></span>
+    <div>
+      <h1 class="h3 fw-bold mb-0">Visit Records</h1>
+      <p class="text-muted mb-0">{{ visits|length }} visit{{ '' if visits|length == 1 else 's' }} found</p>
+    </div>
+  </div>
+  <a href="{{ url_for('add_visit') }}" class="btn btn-clinic"><i class="bi bi-plus-lg me-1"></i>Add Visit</a>
+</div>
+
+<form method="get" class="filter-bar d-flex flex-wrap align-items-center gap-2 mb-3 fade-up" style="--d:.05s">
+  <div class="input-group input-group-sm w-auto">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Student ID or visit ID">
+  </div>
+  <select name="complaint" class="form-select form-select-sm w-auto">
+    <option value="">All complaints</option>
+    {% for c in complaints if c != "Other" %}
+      <option value="{{ c }}" {% if selected_complaint == c %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-sm btn-clinic px-3">Search</button>
+  {% if search or selected_complaint %}
+    <a href="{{ url_for('visit_list') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-lg"></i> Clear</a>
+  {% endif %}
+</form>
+
+<div class="card fade-up" style="--d:.1s">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 table-clinic">
+      <thead>
+        <tr>
+          <th>Visit ID</th><th>Student</th><th>Age</th><th>Gender</th>
+          <th>Course</th><th>Complaint</th><th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in visits %}
+        <tr>
+          <td class="fw-semibold text-success">{{ v.visit_id }}</td>
+          <td><span class="avatar sm me-2">{{ v.gender[:1] }}</span>{{ v.student_id }}</td>
+          <td>{{ v.age }}</td>
+          <td><i class="bi bi-gender-{{ 'male text-male' if v.gender == 'Male' else 'female text-female' }}"></i> {{ v.gender }}</td>
+          <td><span class="course-pill">{{ v.course }}</span></td>
+          <td>{{ complaint_badge(v.complaint) }}</td>
+          <td class="text-muted">{{ v.date }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-5">
+          <i class="bi bi-search fs-2 d-block mb-2"></i>No visits found.
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
